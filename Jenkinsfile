@@ -62,17 +62,14 @@ pipeline {
             }
             steps {
                 sshagent(['app-server']) {
-                    sh 'echo "🚀 Deploying to Application EC2..."'
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 "mkdir -p /opt/springboot-app"'
 
-                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 mkdir -p /opt/springboot-app'
-        
                     sh 'scp -o StrictHostKeyChecking=no target/*.jar ubuntu@44.193.0.46:/opt/springboot-app/app.jar'
-        
-                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 "pkill -f app.jar || true"'
-        
+                    
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 "pkill -f app.jar" || true'
+                    
                     sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 "nohup java -jar /opt/springboot-app/app.jar > /opt/springboot-app/app.log 2>&1 &"'
-        
-                    sh 'echo "✅ Deployment Successful"'
+
 
                 }
             }
