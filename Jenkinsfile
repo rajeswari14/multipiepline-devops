@@ -65,27 +65,25 @@ pipeline {
                 sshagent(['app-server']) {
                     sh '''
                         echo "Deploying to Application EC2..."
-
-                        ssh -o StrictHostKeyChecking=no \
-                        ${DEPLOY_USER}@${DEPLOY_HOST} \
-                        "mkdir -p ${APP_DIR}"
-
-                        scp -o StrictHostKeyChecking=no \
-                        target/*.jar \
-                        ${DEPLOY_USER}@${DEPLOY_HOST}:${APP_DIR}/app.jar
-
-                        ssh -o StrictHostKeyChecking=no \
-                        ${DEPLOY_USER}@${DEPLOY_HOST} "
+        
+                        ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 << 'EOF'
+                            set -e
+                            mkdir -p /opt/springboot-app
                             pkill -f app.jar || true
-                            nohup java -jar ${APP_DIR}/app.jar \
-                            > ${APP_DIR}/app.log 2>&1 &
-                        "
-
+                            nohup java -jar /opt/springboot-app/app.jar \
+                              > /opt/springboot-app/app.log 2>&1 &
+                        EOF
+        
+                        scp -o StrictHostKeyChecking=no \
+                          target/*.jar \
+                          ubuntu@44.193.0.46:/opt/springboot-app/app.jar
+        
                         echo "✅ Deployment Successful"
                     '''
                 }
             }
-        }
+}
+
     }
 
     post {
