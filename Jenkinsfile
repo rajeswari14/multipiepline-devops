@@ -62,27 +62,18 @@ pipeline {
             }
             steps {
                 sshagent(['app-server']) {
-                    sh '''
-                        echo "🚀 Deploying to Application EC2..."
+                    sh 'echo "🚀 Deploying to Application EC2..."'
+
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 mkdir -p /opt/springboot-app'
         
-                        # Ensure app directory
-                        ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 \
-                          "mkdir -p /opt/springboot-app"
+                    sh 'scp -o StrictHostKeyChecking=no target/*.jar ubuntu@44.193.0.46:/opt/springboot-app/app.jar'
         
-                        # Copy JAR
-                        scp -o StrictHostKeyChecking=no \
-                          target/*.jar \
-                          ubuntu@44.193.0.46:/opt/springboot-app/app.jar
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 "pkill -f app.jar || true"'
         
-                        # Stop old app & start new app (ALL INSIDE SSH)
-                        ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 "
-                            pkill -f app.jar || true
-                            nohup java -jar /opt/springboot-app/app.jar \
-                              > /opt/springboot-app/app.log 2>&1 &
-                        "
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 "nohup java -jar /opt/springboot-app/app.jar > /opt/springboot-app/app.log 2>&1 &"'
         
-                        echo "✅ Deployment Successful"
-                    '''
+                    sh 'echo "✅ Deployment Successful"'
+
                 }
             }
         }
