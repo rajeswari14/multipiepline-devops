@@ -62,7 +62,7 @@ pipeline {
                 branch 'main'
             }
             steps {
-                sshagent(['app-server-ssh']) {
+                sshagent(['app-server']) {
                     sh '''
                         echo "Deploying to Application EC2..."
 
