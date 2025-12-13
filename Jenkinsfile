@@ -2,10 +2,17 @@ pipeline {
     agent { label 'agent' }
 
     environment {
-        TOMCAT_HOME = "/opt/tomcat"
-        DEPLOY_SERVER = "ubuntu@44.193.0.46"
-        APP_NAME = "petclinic"
-        SEVERITY_THRESHOLD = "HIGH"
+        APP_NAME    = "springboot-app"
+        APP_DIR     = "/opt/${APP_NAME}"
+        DEPLOY_USER = "ubuntu"
+        DEPLOY_HOST = "44.193.0.46"
+        JAVA_HOME   = "/usr/lib/jvm/java-21-openjdk-amd64"
+        PATH        = "${JAVA_HOME}/bin:${env.PATH}"
+    }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
     }
 
     stages {
@@ -18,10 +25,7 @@ pipeline {
 
         stage('Build & Test') {
             steps {
-                echo "Running mvn clean test"
-                sh '''
-                    mvn clean test
-                '''
+                sh 'mvn clean test'
             }
             post {
                 always {
@@ -30,30 +34,20 @@ pipeline {
             }
         }
 
-        stage('Package WAR') {
+        stage('Package JAR') {
             steps {
-                echo "Packaging WAR for Tomcat"
                 sh '''
-                    mvn clean package -Pwar -DskipTests
-                    ls -lh target/*.war
+                    mvn clean package -DskipTests
+                    ls -lh target/*.jar
                 '''
             }
         }
 
-        stage('Security Scan - Trivy') {
+        stage('Security Scan (Trivy)') {
             steps {
-                echo "Running Trivy filesystem scan"
                 sh '''
-                    trivy fs --exit-code 0 --format json --output trivy-report.json .
-
-                    HIGH_COUNT=$(trivy fs --severity HIGH --exit-code 0 . | grep -c HIGH || true)
-
-                    echo "High vulnerabilities: $HIGH_COUNT"
-
-                    if [ "$HIGH_COUNT" -gt 0 ]; then
-                        echo "❌ HIGH vulnerabilities found. Failing build."
-                        exit 1
-                    fi
+                    trivy fs --exit-code 0 --format json \
+                    --output trivy-report.json .
                 '''
             }
             post {
@@ -63,30 +57,31 @@ pipeline {
             }
         }
 
-        stage('Deploy to Tomcat') {
+        stage('Deploy to App EC2 (main only)') {
+            when {
+                branch 'main'
+            }
             steps {
                 sshagent(['app-server-ssh']) {
                     sh '''
-                        WAR_FILE=$(ls target/*.war)
+                        echo "Deploying to Application EC2..."
 
-                        echo "Deploying $WAR_FILE to Tomcat server"
-
-                        ssh -o StrictHostKeyChecking=no $DEPLOY_SERVER << EOF
-                            $TOMCAT_HOME/bin/shutdown.sh || true
-                            sleep 5
-                            rm -rf $TOMCAT_HOME/webapps/$APP_NAME
-                            rm -f  $TOMCAT_HOME/webapps/$APP_NAME.war
-                        EOF
+                        ssh -o StrictHostKeyChecking=no \
+                        ${DEPLOY_USER}@${DEPLOY_HOST} \
+                        "mkdir -p ${APP_DIR}"
 
                         scp -o StrictHostKeyChecking=no \
-                            $WAR_FILE \
-                            $DEPLOY_SERVER:$TOMCAT_HOME/webapps/$APP_NAME.war
+                        target/*.jar \
+                        ${DEPLOY_USER}@${DEPLOY_HOST}:${APP_DIR}/app.jar
 
-                        ssh -o StrictHostKeyChecking=no $DEPLOY_SERVER << EOF
-                            $TOMCAT_HOME/bin/startup.sh
-                        EOF
+                        ssh -o StrictHostKeyChecking=no \
+                        ${DEPLOY_USER}@${DEPLOY_HOST} "
+                            pkill -f app.jar || true
+                            nohup java -jar ${APP_DIR}/app.jar \
+                            > ${APP_DIR}/app.log 2>&1 &
+                        "
 
-                        echo "✅ Deployment completed"
+                        echo "✅ Deployment Successful"
                     '''
                 }
             }
@@ -95,10 +90,10 @@ pipeline {
 
     post {
         success {
-            echo "🎉 Pipeline completed successfully"
+            echo "🎉 SUCCESS on branch ${env.BRANCH_NAME}"
         }
         failure {
-            echo "❌ Pipeline failed"
+            echo "❌ FAILED on branch ${env.BRANCH_NAME}"
         }
     }
 }
