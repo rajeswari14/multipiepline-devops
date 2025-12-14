@@ -6,8 +6,6 @@ pipeline {
         APP_DIR     = "/opt/${APP_NAME}"
         DEPLOY_USER = "ubuntu"
         DEPLOY_HOST = "44.203.106.7"
-        JAVA_HOME   = "/usr/lib/jvm/java-21-openjdk-amd64"
-        PATH        = "${JAVA_HOME}/bin:${env.PATH}"
     }
 
     options {
@@ -29,7 +27,7 @@ pipeline {
             }
             post {
                 always {
-                    junit 'target/surefire-reports/*.xml'
+                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
                 }
             }
         }
@@ -56,35 +54,33 @@ pipeline {
                 }
             }
         }
+
         stage('Deploy to App EC2 (main only)') {
             when {
                 branch 'main'
             }
             steps {
-                sshagent(['app-server']) {
-                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "mkdir -p /opt/${APP_NAME}"'
+                sshagent(['asst-1']) {
 
-                    sh 'scp -o StrictHostKeyChecking=no target/*.jar ubuntu@44.203.106.7:/opt/${APP_NAME}/app.jar'
-                    
-                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "pkill -f app.jar" || true'
-                    
-                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "nohup java -jar /opt/springboot-app/app.jar > /opt/${APP_NAME}/app.log 2>&1 &"'
-
-
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "mkdir -p /opt/${APP_NAME}"
+                        scp -o StrictHostKeyChecking=no target/*.jar ubuntu@44.203.106.7:/opt/${APP_NAME}/app.jar
+                        ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "pkill -f app.jar || true"
+                        ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 \
+                        "nohup java -jar /opt/${APP_NAME}/app.jar > /opt/${APP_NAME}/app.log 2>&1 &"
+                    '''
                 }
             }
         }
-
-
 
     }
 
     post {
         success {
-            echo "🎉 SUCCESS on branch ${env.BRANCH_NAME}"
+            echo "SUCCESS on branch ${env.BRANCH_NAME}"
         }
         failure {
-            echo "❌ FAILED on branch ${env.BRANCH_NAME}"
+            echo "FAILED on branch ${env.BRANCH_NAME}"
         }
     }
-} 
+}
