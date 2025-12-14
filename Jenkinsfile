@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'agent' }
+    agent any
 
     environment {
         APP_NAME    = "springboot-app"
