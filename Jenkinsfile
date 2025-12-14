@@ -5,7 +5,7 @@ pipeline {
         APP_NAME    = "springboot-app"
         APP_DIR     = "/opt/${APP_NAME}"
         DEPLOY_USER = "ubuntu"
-        DEPLOY_HOST = "44.193.0.46"
+        DEPLOY_HOST = "44.203.106.7"
         JAVA_HOME   = "/usr/lib/jvm/java-21-openjdk-amd64"
         PATH        = "${JAVA_HOME}/bin:${env.PATH}"
     }
@@ -62,13 +62,13 @@ pipeline {
             }
             steps {
                 sshagent(['app-server']) {
-                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 "mkdir -p /opt/${APP_NAME}"'
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "mkdir -p /opt/${APP_NAME}"'
 
-                    sh 'scp -o StrictHostKeyChecking=no target/*.jar ubuntu@44.193.0.46:/opt/${APP_NAME}/app.jar'
+                    sh 'scp -o StrictHostKeyChecking=no target/*.jar ubuntu@44.203.106.7:/opt/${APP_NAME}/app.jar'
                     
-                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 "pkill -f app.jar" || true'
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "pkill -f app.jar" || true'
                     
-                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.193.0.46 "nohup java -jar /opt/springboot-app/app.jar > /opt/${APP_NAME}/app.log 2>&1 &"'
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "nohup java -jar /opt/springboot-app/app.jar > /opt/${APP_NAME}/app.log 2>&1 &"'
 
 
                 }
