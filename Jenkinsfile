@@ -62,12 +62,12 @@ pipeline {
             steps {
                 sshagent(['asst-1']) {
 
-                    sh '''
-                        ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "mkdir -p /opt/${APP_NAME}"
-                        scp -o StrictHostKeyChecking=no target/*.jar ubuntu@44.203.106.7:/opt/${APP_NAME}/app.jar
-                        ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "pkill -f app.jar || true"
-                        "nohup java -jar /opt/${APP_NAME}/app.jar > /opt/${APP_NAME}/app.log 2>&1 &"
-                    '''
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${DEPLOY_HOST} "mkdir -p /opt/springboot-app"
+                        scp -o StrictHostKeyChecking=no target/*.jar ubuntu@${DEPLOY_HOST}:/opt/springboot-app/app.jar
+                        ssh -o StrictHostKeyChecking=no ubuntu@${DEPLOY_HOST} "pkill -f app.jar" || true
+                        ssh -o StrictHostKeyChecking=no ubuntu@${DEPLOY_HOST} "nohup java -jar /opt/springboot-app/app.jar > /opt/springboot-app/app.log 2>&1 &"
+                        """
                 }
             }
         }
