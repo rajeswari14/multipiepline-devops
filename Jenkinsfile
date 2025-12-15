@@ -66,7 +66,6 @@ pipeline {
                         ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "mkdir -p /opt/${APP_NAME}"
                         scp -o StrictHostKeyChecking=no target/*.jar ubuntu@44.203.106.7:/opt/${APP_NAME}/app.jar
                         ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 "pkill -f app.jar || true"
-                        ssh -o StrictHostKeyChecking=no ubuntu@44.203.106.7 \
                         "nohup java -jar /opt/${APP_NAME}/app.jar > /opt/${APP_NAME}/app.log 2>&1 &"
                     '''
                 }
